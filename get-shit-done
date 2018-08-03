@@ -1,0 +1,108 @@
+#!/usr/bin/env zsh
+
+(($#<1)) && {
+    print_usage
+    exit 1;
+}
+
+action="$1"
+timeout="$2"
+hostfile=/etc/hosts
+backupfile=$hostfile.orig
+blacklistedhostfile=$hostfile.blacklist
+
+blacklist=( 'facebook.com'
+    'twitter.com'
+    'linkedin.com'
+    'youtube.com'
+    'netflix.com'
+    'mubi.com'
+    'nytimes.com'
+    'washingtonpost.com'
+    'theguardian.com'
+    'politico.com'
+    'axios.com'
+    'news.ycombinator.com' )
+
+function initialize() {
+    [[ ! -e $backupfile ]] && {
+        cp $hostfile $backupfile
+    }
+    [[ ! -e $blacklistedhostfile ]] && {
+        cp $hostfile $blacklistedhostfile
+        for site in $blacklist; do
+            print -- "127.0.0.1\t$site"
+            print -- "127.0.0.1\twww.$site"
+        done >> $blacklistedhostfile
+    }
+}
+
+function print_usage() {
+    print -- "usage: get-shit-done STATE [TIME]" >&2
+    print -- "Configure hosts file to either be in a work or play mode, for an optional timespan." >&2
+    print -- "Parameters:" >&2
+    print -- "- STATE: work | play" >&2
+    print -- "- TIME: NUMBER[SUFFIX]" >&2
+    print -- "SUFFIX may be 's' for seconds (the default), 'm' for minutes, 'h' for hours or 'd' for days." >&2
+}
+
+function add_blacklist() {
+    cp $blacklistedhostfile $hostfile
+}
+
+function remove_blacklist() {
+    cp $backupfile $hostfile
+}
+
+function sleep_and_add_blacklist() {
+    sleep $timeout
+    echo "Adding blacklist again"
+    add_blacklist
+}
+
+function sleep_and_remove_blacklist() {
+    sleep $timeout
+    echo "Removing blacklist again"
+    remove_blacklist
+}
+
+function switch_hostfile() {
+case $action in
+    h|help)
+        print_usage
+        ;;
+
+    w|work)
+        if [ -n "$timeout" ]; then
+            echo "Adding blacklist for $timeout"
+            add_blacklist
+            sleep_and_remove_blacklist &
+        else
+            echo "Adding blacklist"
+            add_blacklist
+        fi
+        ;;
+
+    p|play)
+        if [ -n "$timeout" ]; then
+            echo "Removing blacklist for $timeout"
+            remove_blacklist
+            sleep_and_add_blacklist &
+        else
+            echo "Removing blacklist"
+            remove_blacklist
+        fi
+        ;;
+
+    *)
+        {
+            print -- "I don't know this option: '$action'"
+            print_usage
+            exit 1
+        } >&2
+esac
+}
+
+# create backupfile and blacklisted file
+initialize
+switch_hostfile

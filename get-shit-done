@@ -1,5 +1,16 @@
 #!/usr/bin/env zsh
 
+function print_usage() {
+    print -- "usage: get-shit-done STATE [TIME]\n" >&2
+    print -- "Configure hosts file to either be in a work or play mode, for an optional timespan.\n" >&2
+    print -- "Parameters:" >&2
+    print -- "- STATE: work | play" >&2
+    print -- "- TIME: NUMBER[SUFFIX]" >&2
+    print -- "SUFFIX may be 's' for seconds (the default), 'm' for minutes, 'h' for hours or 'd' for days.\n" >&2
+    print -- "Example: remove the blacklisting for 30 minutes" >&2
+    print -- "$ sudo get-shit-done play 30m" >&2
+}
+
 (($#<1)) && {
     print_usage
     exit 1;
@@ -35,15 +46,6 @@ function initialize() {
             print -- "127.0.0.1\twww.$site"
         done >> $blacklistedhostfile
     }
-}
-
-function print_usage() {
-    print -- "usage: get-shit-done STATE [TIME]" >&2
-    print -- "Configure hosts file to either be in a work or play mode, for an optional timespan." >&2
-    print -- "Parameters:" >&2
-    print -- "- STATE: work | play" >&2
-    print -- "- TIME: NUMBER[SUFFIX]" >&2
-    print -- "SUFFIX may be 's' for seconds (the default), 'm' for minutes, 'h' for hours or 'd' for days." >&2
 }
 
 function add_blacklist() {

@@ -5,10 +5,9 @@ function print_usage() {
     print -- "Configure hosts file to either be in a work or play mode, for an optional timespan.\n" >&2
     print -- "Parameters:" >&2
     print -- "- STATE: work | play" >&2
-    print -- "- TIME: NUMBER[SUFFIX]" >&2
-    print -- "SUFFIX may be 's' for seconds (the default), 'm' for minutes, 'h' for hours or 'd' for days.\n" >&2
+    print -- "- TIME: MINUTES" >&2
     print -- "Example: remove the blacklisting for 30 minutes" >&2
-    print -- "$ sudo get-shit-done play 30m" >&2
+    print -- "$ sudo get-shit-done play 30" >&2
 }
 
 (($#<1)) && {
@@ -17,43 +16,42 @@ function print_usage() {
 }
 
 action="$1"
-timeout="$2"
-hostfile=/etc/hosts
-backupfile=$hostfile.orig
-blacklistedhostfile=$hostfile.blacklist
+if [ "$2" ]; then
+    timeout=`echo "60 * $2" | bc`
+fi
 
-blacklist=( 'facebook.com'
-    'twitter.com'
-    'linkedin.com'
-    'youtube.com'
-    'netflix.com'
-    'mubi.com'
-    'nytimes.com'
-    'washingtonpost.com'
-    'theguardian.com'
-    'politico.com'
+blacklist=(
+    'b.dk'
     'axios.com'
-    'news.ycombinator.com' )
-
-function initialize() {
-    [[ ! -e $backupfile ]] && {
-        cp $hostfile $backupfile
-    }
-    [[ ! -e $blacklistedhostfile ]] && {
-        cp $hostfile $blacklistedhostfile
-        for site in $blacklist; do
-            print -- "127.0.0.1\t$site"
-            print -- "127.0.0.1\twww.$site"
-        done >> $blacklistedhostfile
-    }
-}
+    'cnn.com'
+    'facebook.com'
+    'information.dk'
+    'jp.dk'
+    'linkedin.com'
+    'netflix.com'
+    'news.ycombinator.com'
+    'nytimes.com'
+    'politico.com'
+    'politiken.dk'
+    'reddit.com'
+    'theguardian.com'
+    'twitter.com'
+    'washingtonpost.com'
+    'youtube.com'
+)
 
 function add_blacklist() {
-    cp $blacklistedhostfile $hostfile
+    for site in $blacklist; do
+        hostess add www.$site 127.0.0.1
+        hostess add $site 127.0.0.1
+    done
 }
 
 function remove_blacklist() {
-    cp $backupfile $hostfile
+    for site in $blacklist; do
+        hostess del www.$site
+        hostess del $site
+    done
 }
 
 function sleep_and_add_blacklist() {
@@ -68,7 +66,7 @@ function sleep_and_remove_blacklist() {
     remove_blacklist
 }
 
-function switch_hostfile() {
+function toggle_blacklist() {
 case $action in
     h|help)
         print_usage
@@ -105,6 +103,4 @@ case $action in
 esac
 }
 
-# create backupfile and blacklisted file
-initialize
-switch_hostfile
+toggle_blacklist
